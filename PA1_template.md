@@ -1,4 +1,11 @@
-# Reproducible Research: Peer Assessment 1
+<!-- rmarkdown v1 -->
+
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true
+---
 
 
 ## Loading and preprocessing the data
@@ -11,7 +18,7 @@ Then I set the working directory and read in the file.
 The 5 minute intervals are counted using three digits: h:mm where h is the number of hours since the beginning of the day and mm is the number of minutes since the start of the hour. I'd like to number these a bit more intuitively, just going from 0:287 each day. So I'll add a column for that and also for the actual time in HH:MM format.
 
 ```r
-setwd("~/DataScienceSpec/Reproducible Research/Peer Assignment 1/repo")
+setwd("~/Coursera/Reproducible/RepData_PeerAssessment1-master")
 raw <- read.table(file="activity.csv",sep=",",header=TRUE)
 augmentedRaw <- raw[order(raw$date,raw$interval),]
 augmentedRaw$steps <- as.numeric(augmentedRaw$steps)
@@ -21,9 +28,9 @@ augmentedRaw$time <- format(.POSIXct(augmentedRaw$ivsecs,tz="GMT"), "%H:%M")
 
 noNAs <- augmentedRaw[!is.na(raw$steps),]
 ```
+## Mean steps per day
+What is mean total number of steps taken per day? Note that we will ignore the rows with no data
 
-## What is mean total number of steps taken per day?
-Note that we will ignore the rows with no data
 
 ```r
 dailySteps <- aggregate(x=noNAs[c("steps")],by=list(Group.date=noNAs$date),FUN=sum)
@@ -39,16 +46,16 @@ dailySteps$steps
 ```
 
 ```r
-hist(dailySteps$steps,main="Histogram of Daily Steps")
+hist(dailySteps$steps,main="Histogram of Daily Steps",xlab='Steps per Day')
 ```
 
-![](./PA1_template_files/figure-html/unnamed-chunk-2-1.png) 
+![plot of chunk daily_means](figure/daily_means-1.png) 
 
 ```r
 mn <- as.integer(mean(dailySteps$steps))
 md <- as.integer(median(dailySteps$steps))
 ```
-The calcualted mean is 10766 and the median is 10765.
+The calculated mean is 10766 and the median is 10765.
 And as a quick check, we'll print the Summary
 
 ```r
@@ -66,22 +73,25 @@ summary(dailySteps)
 ##  (Other)   :47
 ```
 
-## What is the average daily activity pattern?
+## Daily activity pattern
+What is the average daily activity pattern? We'll plot the means of the intervals.
+
 
 ```r
 intervalMeans <- aggregate(x=noNAs[c("steps")],by=list(Group.interval=noNAs$ivs),FUN=mean)
 
-plot(intervalMeans,type="l")
+plot(intervalMeans,type="l",xlab='Average Daily Activity Pattern')
 ```
 
-![](./PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
+![plot of chunk average_daily_pattern](figure/average_daily_pattern-1.png) 
 
 ```r
 maxInterval <- intervalMeans[intervalMeans$steps==max(intervalMeans$steps),1]
 ```
-The interval with the largest average number of steps is: 103
+The interval with the largest average number of steps is: 103.
 
-## Imputing missing values
+
+##Impute values for missing data
 Given that we have rows with missing values, we are going to fill the missing data using the means of the corresponding interval. But first, how many missing values are there?
 
 ```r
@@ -89,17 +99,11 @@ nRaw <- nrow(raw)
 nNotNAs <- nrow(noNAs)
 nNAs <- nRaw - nNotNAs
 ```
-There are 2304 rows with no step data.
+There are 2304 rows with no step data. Now replace missing values with the means. This should not perturb the observations.
+
 
 ```r
 library(plyr)
-```
-
-```
-## Warning: package 'plyr' was built under R version 3.1.3
-```
-
-```r
 newDS <- augmentedRaw
 newDS <- ddply(newDS, 
               .(interval), 
@@ -125,16 +129,17 @@ ndailySteps$steps
 ```
 
 ```r
-hist(ndailySteps$steps,main="Histogram of Daily Steps with Imputed Data")
+hist(ndailySteps$steps,main="Histogram of Daily Steps with Imputed Data",xlab='Steps per Day')
 ```
 
-![](./PA1_template_files/figure-html/unnamed-chunk-6-1.png) 
+![plot of chunk impute_missing_values](figure/impute_missing_values-1.png) 
 
 ```r
 nmn <- as.integer(mean(dailySteps$steps))
 nmd <- as.integer(median(dailySteps$steps))
 ```
-The calcualted mean of the new data set with the imputed data is 10766 and the median is 10765. The mean and median have not changed, as expected.
+The calculated mean of the new data set with the imputed data is 10766 and the median is 10765. The mean and median have not changed, as expected.
+
 
 Now lets look at how the number of steps per day has changed. First, we'll compute this with the augmentedRaw data and we'll subtract that from the values just calculated for the imputed data.
 
@@ -164,9 +169,8 @@ ndailySteps$steps - rdailySteps$steps
 ```
 As you can see above, there is no change to the days that had all of the data as shown by the differences being equal to zero. The only changes are for the days that had no data (all NAs). The values for those missing days are shown above in ndailySteps$steps.
 
-## Are there differences in activity patterns between weekdays and weekends?
-
-First, lets create a factor to identify weekend days from days during the week. We'' convert the date text to a date object and wee if it is either a Saturday or Sunday and mark those as "weekend". Then we'll mark everything else as "weekday". Finally, we'll check the summary to be sure we have the factor with two levels as needed.
+##Weekday vs. weekend patterns
+Are there differences in activity patterns between weekdays and weekends? First, lets create a factor to identify weekend days from days during the week. We'' convert the date text to a date object and wee if it is either a Saturday or Sunday and mark those as "weekend". Then we'll mark everything else as "weekday". Finally, we'll check the summary to be sure we have the factor with two levels as needed.
 
 ```r
 newDS$weekOrEnd <- 
@@ -193,10 +197,11 @@ weekdayMeans <- aggregate(x=weekday[c("steps")],by=list(Group.interval=weekday$i
 ```
 Now we have the data we need, so we'll plot them for easy comparison.
 
+
 ```r
 par(mfrow=c(2,1))
-plot(weekdayMeans,type="l",ylab="Average Steps",main="Weekday Average Steps by Interval")
-plot(weekendMeans,type="l",ylab="Average Steps",main="Weekend Average Steps by Interval")
+plot(weekdayMeans,type="l",ylab="Average Steps",main="Weekday Average Steps by Interval",xlab='Interval')
+plot(weekendMeans,type="l",ylab="Average Steps",main="Weekend Average Steps by Interval",xlab='Interval')
 ```
 
-![](./PA1_template_files/figure-html/unnamed-chunk-9-1.png) 
+![plot of chunk plot_diferences](figure/plot_diferences-1.png) 
